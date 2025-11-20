@@ -43,7 +43,7 @@ impl<T: Clone> ReadUntracked for OptionLocalSignal<T> {
 }
 
 /*impl<T: Clone> Read for OptionLocalSignal<T> {
-    
+
 }*/
 
 impl<T> Track for OptionLocalSignal<T>

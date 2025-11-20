@@ -10,17 +10,19 @@ pub fn BroadcastChannelDemo() -> impl IntoView {
         message,
         post,
         error,
-        channel,
         ..
     } = use_broadcast_channel::<String, FromToStringCodec>("leptos-use-e2e-testing-channel");
 
     let (input_value, set_input_value) = signal(String::new());
-    
+
+    let (is_mounted, set_mounted) = signal(false);
+    Effect::new(move |_| set_mounted.set(true));
+
     view! {
         <h2>Broadcast Channel E2E Test</h2>
         <p>Please open this page in at least two tabs</p>
         <Show
-            when=move || is_supported.get()
+            when=move || is_supported.get() && is_mounted.get()
             fallback=move || view! { <p>"BroadcastChannel not supported"</p> }
         >
             <form on:submit={

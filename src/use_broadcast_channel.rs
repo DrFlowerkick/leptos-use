@@ -1,7 +1,7 @@
 use crate::core::OptionLocalSignal;
-use crate::{js, use_supported};
 use codee::{CodecError, Decoder, Encoder};
 use leptos::prelude::*;
+use send_wrapper::SendWrapper;
 use thiserror::Error;
 use wasm_bindgen::JsValue;
 
@@ -87,30 +87,31 @@ where
     <C as Encoder<T>>::Error: Send + Sync,
     <C as Decoder<T>>::Error: Send + Sync,
 {
-    let is_supported = use_supported(|| js!("BroadcastChannel" in &window()));
     let (is_closed, set_closed) = signal(false);
     let (message, set_message) = signal(None::<T>);
+    let (channel, set_channel) = signal(None::<SendWrapper<web_sys::BroadcastChannel>>);
+    let (error, set_error) = signal(
+        None::<
+            SendWrapper<
+                UseBroadcastChannelError<<C as Encoder<T>>::Error, <C as Decoder<T>>::Error>,
+            >,
+        >,
+    );
 
+    let is_supported;
     let post;
     let close;
-    let return_channel;
-    let return_error;
 
     #[cfg(not(feature = "ssr"))]
     {
         use crate::sendwrap_fn;
-        use crate::{UseEventListenerOptions, use_event_listener, use_event_listener_with_options};
+        use crate::{
+            UseEventListenerOptions, js, use_event_listener, use_event_listener_with_options,
+            use_supported,
+        };
         use leptos::ev::messageerror;
-        use send_wrapper::SendWrapper;
 
-        let (channel, set_channel) = signal(None::<SendWrapper<web_sys::BroadcastChannel>>);
-        let (error, set_error) = signal(
-            None::<
-                SendWrapper<
-                    UseBroadcastChannelError<<C as Encoder<T>>::Error, <C as Decoder<T>>::Error>,
-                >,
-            >,
-        );
+        is_supported = use_supported(|| js!("BroadcastChannel" in &window()));
 
         post = {
             sendwrap_fn!(move |data: &T| {
@@ -192,30 +193,28 @@ where
                 close();
             }
         });
-
-        return_channel = channel.into();
-        return_error = error.into();
     }
 
     #[cfg(feature = "ssr")]
     {
+        is_supported = Signal::stored(false);
         post = |_: &T| {};
         close = || {};
-        return_channel = Signal::stored(None).into();
-        return_error = Signal::stored(None).into();
 
         let _ = set_closed;
         let _ = set_message;
+        let _ = set_channel;
+        let _ = set_error;
         let _ = name;
     }
 
     UseBroadcastChannelReturn {
         is_supported,
-        channel: return_channel,
+        channel: channel.into(),
         message: message.into(),
         post,
         close,
-        error: return_error,
+        error: error.into(),
         is_closed: is_closed.into(),
     }
 }
@@ -262,4 +261,23 @@ pub enum UseBroadcastChannelError<E, D> {
     Codec(CodecError<E, D>),
     #[error("received value is not a string")]
     ValueNotString,
+}
+
+impl<E, D> Clone for UseBroadcastChannelError<E, D>
+where
+    E: Clone,
+    D: Clone,
+{
+    fn clone(&self) -> Self {
+        match self {
+            UseBroadcastChannelError::PostMessage(v) => {
+                UseBroadcastChannelError::PostMessage(v.clone())
+            }
+            UseBroadcastChannelError::MessageEvent(v) => {
+                UseBroadcastChannelError::MessageEvent(v.clone())
+            }
+            UseBroadcastChannelError::Codec(v) => UseBroadcastChannelError::Codec(v.clone()),
+            UseBroadcastChannelError::ValueNotString => UseBroadcastChannelError::ValueNotString,
+        }
+    }
 }
