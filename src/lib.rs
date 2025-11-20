@@ -40,6 +40,7 @@ mod use_active_element;
 mod use_breakpoints;
 #[cfg(feature = "use_broadcast_channel")]
 mod use_broadcast_channel;
+pub mod use_broadcast_channel_old;
 #[cfg(feature = "use_calendar")]
 mod use_calendar;
 #[cfg(feature = "use_clipboard")]
