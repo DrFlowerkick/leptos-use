@@ -1,6 +1,6 @@
 use codee::string::FromToStringCodec;
 use leptos::{prelude::*, web_sys};
-use leptos_use::{use_broadcast_channel_old::{use_broadcast_channel, UseBroadcastChannelReturn}};
+use leptos_use::use_broadcast_channel_old::{use_broadcast_channel, UseBroadcastChannelReturn};
 
 /// E2E test component for use_broadcast_channel
 #[component]
@@ -22,19 +22,32 @@ pub fn BroadcastChannelDemo() -> impl IntoView {
         move || message.get(),
         move |maybe_msg| async move {
             if let Some(msg) = maybe_msg {
-                format!("Message received: {}, server answers: {}", msg, 
-        super::server_fn_example().await.unwrap_or_else(|_| "Server error".to_string()))
+                format!(
+                    "Message received: {}, server answers: {}",
+                    msg,
+                    super::server_fn_example()
+                        .await
+                        .unwrap_or_else(|_| "Server error".to_string())
+                )
             } else {
                 "No message sent yet".to_string()
             }
-        }
-);
+        },
+    );
 
-    let error_msg = move || error.with(|e| {
-        e.as_ref()
-            .map(|err| format!("{:?}", err))
-            .unwrap_or_else(|| "No error".to_string())
-    });
+    let error_msg = move || {
+        error.with(|e| {
+            e.as_ref()
+                .map(|err| format!("{:?}", err))
+                .unwrap_or_else(|| "No error".to_string())
+        })
+    };
+
+    let sse_subscribe = Action::new(
+        |msg: &String| super::trigger_sse_event(msg.clone())
+    );
+
+    sse_subscribe.dispatch("Hello from BroadcastChannelDemo".to_string());
 
     view! {
         <h2>Broadcast Channel E2E Test</h2>

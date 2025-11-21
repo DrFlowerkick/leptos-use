@@ -63,3 +63,4 @@ fn HomePage() -> impl IntoView {
         </ul>
     }
 }
+
